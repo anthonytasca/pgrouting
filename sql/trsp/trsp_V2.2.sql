@@ -102,9 +102,9 @@ BEGIN
 
     restrictions_query = $$
         WITH old_restrictions AS ( $$ ||
-            $6 || $$ 
+            $6 || $$
         )
-        SELECT ROW_NUMBER() OVER() AS id, 
+        SELECT ROW_NUMBER() OVER() AS id,
             _pgr_array_reverse(array_prepend(target_id, string_to_array(via_path, ',')::INTEGER[])) AS path,
             to_cost AS cost
         FROM old_restrictions;
@@ -262,9 +262,9 @@ BEGIN
             union_sql = union_sql1;
         ELSE IF union_sql1 IS NULL AND union_sql2 IS NOT NULL THEN
             union_sql = union_sql2;
-        END IF; 
-        END IF; 
-        END IF; 
+        END IF;
+        END IF;
+        END IF;
 
         IF union_sql IS NULL THEN
             -- no points then its a dijkstra
@@ -274,7 +274,7 @@ BEGIN
                 ,' || target_sql || '
                 , directed := ' || directed || '
             ) a )
-            SELECT seq, CASE WHEN seq = 0 THEN -1 WHEN id2 = -1 THEN -2 ELSE id1 END, id2, cost  FROM final_sql ORDER BY seq';
+            SELECT seq, id1, id2, cost  FROM final_sql ORDER BY seq';
         ELSE
             -- points then its a withPoints
             final_sql = 'WITH final_sql AS (
@@ -284,7 +284,11 @@ BEGIN
                 ,' || target_sql || '
                 , directed := ' || directed || '
             ) a )
-            SELECT seq, CASE WHEN seq = 0 THEN -1 WHEN id2 = -1 THEN -2 ELSE id1 END, id2, cost  FROM final_sql ORDER BY seq';
+            SELECT seq, CASE WHEN seq = 0 AND ' || source_pos || '=0 THEN id1
+                             WHEN seq = 0 AND ' || source_pos || '!=0 THEN -1
+                             WHEN id2 = -1 AND ' || target_pos || '=0 THEN id1
+                             WHEN id2 = -1 AND ' || target_pos || '!=0 THEN id1
+                             ELSE id1 END AS id1, id2, cost  FROM final_sql ORDER BY seq';
         END IF;
 
 
